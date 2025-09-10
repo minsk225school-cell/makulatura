@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Учет макулатуры по классам</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .left-panel {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .right-panel {
+            flex: 2;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, button {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            width: 100%;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: ##8d88ff;
+        }
+        .class-header {
+            background-color: #3498db;
+            color: white;
+        }
+        .pupil-row:hover {
+            background-color: #f9f9f9;
+        }
+        .medal {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 20px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .gold {
+            background-color: gold;
+            color: black;
+        }
+        .silver {
+            background-color: silver;
+            color: black;
+        }
+        .bronze {
+            background-color: #cd7f32;
+            color: white;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        .delete-btn {
+            background: #e74c3c;
+            width: auto;
+        }
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+        .save-btn {
+            background: #2ecc71;
+            width: auto;
+        }
+        .save-btn:hover {
+            background: #27ae60;
+        }
+    </style>
+</head>
+<body>
+    <h1>Учет сдачи макулатуры по классам</h1>
+    
+    <div class="container">
+        <div class="left-panel">
+            <h2>Добавить класс</h2>
+            <div class="form-group">
+                <label for="className">Название класса:</label>
+                <input type="text" id="className" placeholder="Например: 5А">
+            </div>
+            <button id="addClassBtn">Добавить класс</button>
+            
+            <h2>Управление данными</h2>
+            <button id="saveDataBtn" class="save-btn">Сохранить данные</button>
+            <button id="clearDataBtn" class="delete-btn">Очистить все данные</button>
+        </div>
+        
+        <div class="right-panel">
+            <h2>Учет макулатуры</h2>
+            <div id="classesContainer">
+                <!-- Сюда будут добавляться классы -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Элементы управления
+            const classNameInput = document.getElementById('className');
+            const addClassBtn = document.getElementById('addClassBtn');
+            const classesContainer = document.getElementById('classesContainer');
+            const saveDataBtn = document.getElementById('saveDataBtn');
+            const clearDataBtn = document.getElementById('clearDataBtn');
+            
+            // Данные приложения
+            let classesData = loadData();
+            
+            // Инициализация интерфейса
+            renderClasses();
+            
+            // Обработчики событий
+            addClassBtn.addEventListener('click', addClass);
+            saveDataBtn.addEventListener('click', saveData);
+            clearDataBtn.addEventListener('click', clearData);
+            
+            // Функция добавления класса
+            function addClass() {
+                const className = classNameInput.value.trim();
+                if (!className) {
+                    alert('Введите название класса');
+                    return;
+                }
+                
+                if (classesData.find(c => c.name === className)) {
+                    alert('Такой класс уже существует');
+                    return;
+                }
+                
+                classesData.push({
+                    name: className,
+                    pupils: [],
+                    total: 0,
+                    place: 0
+                });
+                
+                classNameInput.value = '';
+                renderClasses();
+                saveData();
+            }
+            
+            // Функция отрисовки классов
+            function renderClasses() {
+                classesContainer.innerHTML = '';
+                
+                // Сортируем классы по убыванию сданной макулатуры
+                const sortedClasses = [...classesData].sort((a, b) => b.total - a.total);
+                
+                // Обновляем места (рейтинг)
+                sortedClasses.forEach((classObj, index) => {
+                    const classData = classesData.find(c => c.name === classObj.name);
+                    if (classData) {
+                        classData.place = index + 1;
+                    }
+                });
+                
+                // Отрисовываем каждый класс
+                classesData.forEach(classObj => {
+                    const classElement = document.createElement('div');
+                    classElement.classList.add('class-block');
+                    
+                    classElement.innerHTML = `
+                        <table>
+                            <thead>
+                                <tr class="class-header">
+                                    <th colspan="4">
+                                        Класс: ${classObj.name}
+                                        <button class="delete-btn" data-class="${classObj.name}" style="float: right;">Удалить класс</button>
+                                    </th>
+                                </tr>
+                                <tr>
+                                    <th>Фамилия ученика</th>
+                                    <th>Количество (кг)</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${classObj.pupils.map((pupil, index) => `
+                                    <tr class="pupil-row">
+                                        <td>${pupil.name}</td>
+                                        <td>${pupil.kg}</td>
+                                        <td class="actions">
+                                            <button class="delete-btn" data-class="${classObj.name}" data-index="${index}">Удалить</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                                <tr>
+                                    <td><input type="text" class="pupil-name" placeholder="Фамилия ученика" data-class="${classObj.name}"></td>
+                                    <td><input type="number" class="pupil-kg" placeholder="Количество кг" data-class="${classObj.name}" min="0" step="0.1"></td>
+                                    <td><button class="add-pupil-btn" data-class="${classObj.name}">Добавить</button></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2"><strong>Всего сдано макулатуры:</strong></td>
+                                    <td colspan="2"><strong>${classObj.total} кг</strong></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2"><strong>Место в рейтинге:</strong></td>
+                                    <td colspan="2">
+                                        <strong>
+                                            ${classObj.place <= 3 ? `<span class="medal ${classObj.place === 1 ? 'gold' : classObj.place === 2 ? 'silver' : 'bronze'}">${classObj.place}</span>` : classObj.place}
+                                        </strong>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    `;
+                    
+                    classesContainer.appendChild(classElement);
+                });
+                
+                // Добавляем обработчики для динамически созданных элементов
+                document.querySelectorAll('.add-pupil-btn').forEach(btn => {
+                    btn.addEventListener('click', addPupil);
+                });
+                
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    if (btn.hasAttribute('data-index')) {
+                        // Это кнопка удаления ученика
+                        btn.addEventListener('click', deletePupil);
+                    } else if (btn.hasAttribute('data-class')) {
+                        // Это кнопка удаления класса
+                        btn.addEventListener('click', deleteClass);
+                    }
+                });
+            }
+            
+            // Функция добавления ученика
+            function addPupil(e) {
+                const className = e.target.getAttribute('data-class');
+                const classObj = classesData.find(c => c.name === className);
+                
+                if (!classObj) return;
+                
+                const row = e.target.parentElement.parentElement;
+                const nameInput = row.querySelector('.pupil-name');
+                const kgInput = row.querySelector('.pupil-kg');
+                
+                const name = nameInput.value.trim();
+                const kg = parseFloat(kgInput.value);
+                
+                if (!name || isNaN(kg) || kg <= 0) {
+                    alert('Введите корректные данные ученика');
+                    return;
+                }
+                
+                classObj.pupils.push({ name, kg });
+                classObj.total += kg;
+                
+                nameInput.value = '';
+                kgInput.value = '';
+                
+                renderClasses();
+                saveData();
+            }
+            
+            // Функция удаления ученика
+            function deletePupil(e) {
+                const className = e.target.getAttribute('data-class');
+                const index = parseInt(e.target.getAttribute('data-index'));
+                const classObj = classesData.find(c => c.name === className);
+                
+                if (!classObj || index < 0 || index >= classObj.pupils.length) return;
+                
+                // Вычитаем кг удаляемого ученика из общей суммы
+                classObj.total -= classObj.pupils[index].kg;
+                classObj.pupils.splice(index, 1);
+                
+                renderClasses();
+                saveData();
+            }
+            
+            // Функция удаления класса
+            function deleteClass(e) {
+                const className = e.target.getAttribute('data-class');
+                if (confirm(`Вы уверены, что хотите удалить класс ${className} и все связанные данные?`)) {
+                    classesData = classesData.filter(c => c.name !== className);
+                    renderClasses();
+                    saveData();
+                }
+            }
+            
+            // Функция сохранения данных в localStorage
+            function saveData() {
+                localStorage.setItem('maculaturaData', JSON.stringify(classesData));
+                alert('Данные успешно сохранены!');
+            }
+            
+            // Функция загрузки данных из localStorage
+            function loadData() {
+                const data = localStorage.getItem('maculaturaData');
+                return data ? JSON.parse(data) : [];
+            }
+            
+            // Функция очистки всех данных
+            function clearData() {
+                if (confirm('Вы уверены, что хотите удалить все данные? Это действие нельзя отменить.')) {
+                    localStorage.removeItem('maculaturaData');
+                    classesData = [];
+                    renderClasses();
+                    alert('Все данные были удалены.');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
